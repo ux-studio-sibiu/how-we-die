@@ -1,0 +1,86 @@
+// Shared "paper and ink" chrome, from effects-collection's randomize-studio panels and web-portfolio's cursor card
+// (copied in, not linked). Used with @use from component stylesheets:
+//   @use '../../../styles/paper' as paper;
+//   .box { @include paper.panel; }
+
+// The studio's diagonal hatch (patterns/diagonal.svg), inlined so nothing loads from outside the project
+$hatch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpath d='M-1 1l2-2M0 10L10 0M9 11l2-2' stroke='%23000' stroke-width='1.5'/%3E%3C/svg%3E");
+
+$border: 2px;
+
+// A panel: paper, a 2px ink edge, square corners, and the lift drawn the way an elevation drawing throws a shadow:
+// an offset block of hatch rather than a blur, so it stays flat and printed.
+// Only the L that clears the box is drawn, as two strips outside it (::before down the right, ::after along the bottom).
+// One offset box behind the face doesn't work: a positioned box with a z-index is a stacking context, and a negative-z
+// child paints above its background, not below. The host must be positioned (relative, absolute or fixed).
+@mixin panel($lift: 8px) {
+  border: $border solid var(--ink);
+  border-radius: 0;
+  background: var(--surface);
+
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    background: $hatch 0 0 / 5px 5px repeat;
+  }
+  &::before { top: $lift; bottom: calc(-1 * ($lift + $border)); right: calc(-1 * ($lift + $border)); width: $lift; }  // down the right edge
+  &::after { left: $lift; right: calc(-1 * ($lift + $border)); bottom: calc(-1 * ($lift + $border)); height: $lift; } // along the bottom
+}
+
+// A field or small control: the same ink edge, no lift
+@mixin field {
+  border: $border solid var(--ink);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+}
+
+// Labels and small copy: monospace, small, tracked capitals, like the studio's titlebar and the cursor card's role line
+@mixin mono-label($size: 0.6875rem, $tracking: 0.14em) {
+  font-family: var(--ui-mono);
+  font-size: $size;
+  letter-spacing: $tracking;
+  text-transform: uppercase;
+}
+
+// The tooltip box: web-portfolio's cursor card. Paper, a 2px ink border, a hard offset shadow (no blur), and a 0.12 s fade-in.
+@mixin tooltip-card {
+  padding: 0.6rem 0.8rem 0.65rem;
+  border: $border solid var(--ink);
+  border-radius: 0;
+  background: var(--surface);
+  box-shadow: 3px 5px #00000033;
+  white-space: nowrap;
+  animation: paper-card-in 0.12s ease both;
+
+  @media (prefers-reduced-motion: reduce) { animation: none; }
+}
+
+// A segmented switch: ink-edged buttons side by side, the active one inverted (the studio's look). Hover lightens a little,
+// never inverts: paper gets a faint tint, the black active button goes charcoal. Layout (flex, grid) is the caller's.
+//   .modes { display: inline-flex; @include paper.segmented(24px, 0.625rem, 0.1em); }
+@mixin segmented($height: 30px, $size: 0.6875rem, $tracking: 0.14em) {
+  border: $border solid var(--ink);
+  background: var(--surface);
+
+  button {
+    height: $height; padding: 0 10px; border: 0; border-radius: 0; background: none; color: var(--fg); cursor: pointer;
+    font: inherit; @include mono-label($size, $tracking); font-weight: 700;
+  }
+  button + button { border-left: $border solid var(--ink); }
+  button.is-active { background: var(--ink); color: var(--surface); }
+  button:hover:not(:disabled) { background: var(--tint); }
+  button.is-active:hover { background: #3a3a3a; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+// What goes inside a tooltip card (the card itself is tooltip-card, drawn by the chart that owns the tooltip; the content
+// comes from the page through a slot, so the page includes this): a bold name, then optional label .......... value rows.
+@mixin card-content {
+  .card-title { display: block; font-weight: 700; font-size: 0.95rem; line-height: 1.3; }
+  .card-row { display: flex; align-items: baseline; gap: 6px; min-width: 200px; margin-top: 0.25rem; color: var(--muted); font-size: 0.8rem; }
+  .card-row strong { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .leader { flex: 1; border-bottom: 1px dotted var(--line); transform: translateY(-3px); }
+}

@@ -1,0 +1,46 @@
+<!-- Literal @ and { } start Angular syntax: escape them (&#64;, &#123;). -->
+<app-lesson-page eyebrow="Lesson 00">
+  <h1>Setup: a starter kit from a finished project</h1>
+  <p>A new Angular 21 app, with the foundations of The Carbon Divide (<code>../data-viz</code>) copied in: the paper look, the lesson window, the flat map, the legend, the timeline. The home page is a title card for now; the first chart arrives in lesson 02.</p>
+
+  <h2>1. The app</h2>
+  <pre><code>npx @angular/cli@21 new how-we-die --directory . --style scss --ssr false --skip-git --routing</code></pre>
+  <ul>
+    <li>Angular 21, standalone components, <strong>zoneless</strong> (the default since 21: the screen updates when a signal a template reads changes), no SSR. The same choices as The Carbon Divide, so its code drops in unchanged.</li>
+    <li><code>--skip-git</code>: <code>ng new</code> would otherwise create a repository and an initial commit. Commits are yours to make.</li>
+    <li>Node 20 runs Angular 21; Angular 22 needs Node 22.</li>
+    <li>Libraries, at the versions The Carbon Divide uses: <code>d3-array</code>, <code>d3-scale</code>, <code>d3-shape</code>, <code>d3-geo</code>, <code>topojson-client</code> and <code>gsap</code>. Three.js is left out: this story has no globe.</li>
+  </ul>
+
+  <h2>2. What was copied, and why it was copied</h2>
+  <p>The workspace rule: shared code is <strong>copied in, never linked out</strong>. A link out of the folder (<code>../data-viz/src/…</code>) breaks when this project is served or deployed on its own, and a copy can change here without touching the original.</p>
+  <ul>
+    <li><strong>The paper look:</strong> <code>styles.scss</code> (colour tokens, fonts) and <code>styles/_paper.scss</code> (the <code>panel</code>, <code>field</code>, <code>segmented</code>, <code>tooltip-card</code> and <code>card-content</code> mixins), plus the graph-paper backdrop (<code>ui/backdrop</code>, <code>public/textures/graph-paper.svg</code>).</li>
+    <li><strong>The lesson window:</strong> <code>ui/draggable</code>, <code>ui/floating-panel</code>, <code>ui/dock</code>, <code>lessons/lesson-window</code>, <code>lessons/lesson-page</code>, the roadmap page. Lessons open in a movable, minimizable window over the product, on a named router outlet: <code>/(lesson:lessons/setup)</code>.</li>
+    <li><strong>For later lessons:</strong> <code>charts/flat-map</code> and <code>charts/legend</code> (lesson 07's map), <code>ui/timeline</code> (lessons 03 and 08), <code>shared/motion-preference</code> (reduced motion, for every animation), and the boundaries: <code>data/boundaries.ts</code>, <code>data/country.ts</code> (with income groups), <code>data/format.ts</code>, <code>public/data/countries*.json</code> and the script that built them.</li>
+    <li><code>app.config.ts</code> keeps <code>defaultQueryParamsHandling: 'merge'</code>: when this story's state goes in the URL (a country, a year), every navigation keeps it.</li>
+  </ul>
+
+  <h2>3. What was left behind</h2>
+  <ul>
+    <li>The globe, its shaders, extrusion, and Three.js; the CO₂ data and its pipeline; the explorer page, its state, the scatter plot, the compare tray, the story page. They are about carbon, or about a globe.</li>
+    <li>The story page (<code>pages/story</code>) and the line chart will be worth copying again when lessons 09 and 05 need them; copying now would carry code nobody uses yet.</li>
+    <li>The root component was rewritten small: a floating header (Home, Lessons), the page, the lesson window and the dock.</li>
+  </ul>
+
+  <h2>Files in this lesson</h2>
+  <ul class="note">
+    <li><code>ROADMAP.md</code>: the plan, 10 lessons</li>
+    <li><code>src/app/app.*</code>, <code>app.routes.ts</code>, <code>pages/home/*</code>: the shell and the title card</li>
+    <li><code>src/styles.scss</code>, <code>src/styles/_paper.scss</code>, <code>ui/*</code>, <code>shared/*</code>, <code>lessons/lesson-window</code>, <code>lessons/lesson-page</code>, <code>charts/*</code>, <code>data/*</code>, <code>public/data</code>, <code>public/textures</code>, <code>scripts/build-boundaries.mjs</code>: copied from data-viz</li>
+    <li><code>lessons/lessons.routes.ts</code>, <code>lessons/roadmap/*</code>, <code>lessons/lesson-setup/*</code> (this page)</li>
+  </ul>
+
+  <h2>Review checklist</h2>
+  <ul class="note">
+    <li><code>npm start</code>: the title card on graph paper, Lessons top right</li>
+    <li>Lessons opens the roadmap in a window: drag it, minimize it to the dock, restore it</li>
+    <li>The roadmap's 00 link opens this page; prev / next in the window follow the roadmap</li>
+    <li><code>npm run build</code> passes with no warnings</li>
+  </ul>
+</app-lesson-page>

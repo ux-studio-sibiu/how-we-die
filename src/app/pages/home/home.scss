@@ -1,0 +1,15 @@
+@use '../../../styles/paper' as paper;
+
+:host { display: flex; flex: 1; }
+
+// The whole screen is the stage, on the graph paper (ui/backdrop)
+.nsc-home {
+  position: relative; isolation: isolate; display: grid; place-items: center; flex: 1; min-height: 100dvh; padding: 16px;
+
+  .backdrop { z-index: -1; }
+  .card { position: relative; width: min(520px, 100%); padding: 28px 30px; @include paper.panel; }
+  .kicker { margin: 0; color: var(--muted); @include paper.mono-label(0.6875rem, 0.14em); }
+  h1 { margin: 8px 0 12px; font-size: 2rem; line-height: 1.1; }
+  p { margin: 0; line-height: 1.55; }
+  .note { margin-top: 16px; color: var(--muted); font-size: 0.85rem; }
+}

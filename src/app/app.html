@@ -1,0 +1,15 @@
+<!-- No bar, no background: just the links, floating over the top-right corner -->
+<header class="site-header">
+  @if (!onHome()) {
+    <a routerLink="/">Home</a>
+  }
+  <!-- Opens the roadmap in the lesson window: only the named outlet changes, the current page stays -->
+  <a [routerLink]="[{ outlets: { lesson: ['lessons'] } }]" title="Lessons">Lessons</a>
+</header>
+
+<main class="site-main">
+  <router-outlet />
+</main>
+
+<app-lesson-window />
+<app-dock-bar />
