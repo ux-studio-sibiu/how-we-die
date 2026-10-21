@@ -1,0 +1,24 @@
+.inspector {
+  margin: 16px 0; padding: 16px; border: 1px solid var(--line);
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+  label { display: flex; align-items: center; gap: 8px; }
+  select { font: inherit; padding: 4px 8px; border: 1px solid var(--ink); background: var(--surface); color: var(--fg); }
+  input[type='range'] { width: 140px; }
+  .year { min-width: 4ch; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .unit { margin: 12px 0 4px; color: var(--muted); font-size: 0.85rem; }
+  .error { color: var(--accent); }
+
+  ul { margin: 0; padding-left: 0; list-style: none; }
+  ul ul { padding-left: 16px; }
+  li { margin: 0; }
+  .row { display: flex; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .name { flex: 1; }
+  .value { width: 7ch; text-align: right; }
+  .share { width: 6ch; text-align: right; color: var(--muted); }
+  .family > .row, .total { font-weight: 700; }
+  .is-other .name { color: var(--muted); }
+  summary { cursor: pointer; list-style: none; }
+  summary .name::before { content: '+ '; color: var(--muted); }
+  details[open] > summary .name::before { content: '− '; }
+}

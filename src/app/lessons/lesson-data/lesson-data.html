@@ -1,0 +1,121 @@
+<!-- Literal @ and { } start Angular syntax: escape them (&#64;, &#123;). -->
+<app-lesson-page eyebrow="Lesson 01">
+  <h1>Data pipeline: 20 million rows to 6 small files</h1>
+  <p>Every chart in this story reads files written by one script, <code>scripts/build-deaths.mjs</code> (<code>npm run data</code>). It downloads three sources once, reads the big one a slice at a time, and writes compact JSON into <code>public/data</code>.</p>
+
+  <h2>1. The sources</h2>
+  <table>
+    <thead><tr><th>Source</th><th>What</th><th>Licence</th></tr></thead>
+    <tbody>
+      <tr><td>WHO Global Health Estimates 2021</td><td>Deaths by cause, age, sex, country and year, 2000–2021: 194 countries, 216 causes. Republished by Our World in Data as one Parquet table: 247 MB, 20.2 million rows.</td><td>CC BY-NC-SA 3.0 IGO</td></tr>
+      <tr><td>OWID: child mortality</td><td>Share of children who die before age 5, from 1950 (UN World Population Prospects)</td><td>CC BY 4.0</td></tr>
+      <tr><td>OWID: life expectancy</td><td>Life expectancy at birth, from 1751 for Sweden and 1770 for the world</td><td>CC BY 4.0</td></tr>
+    </tbody>
+  </table>
+  <ul>
+    <li><strong>Why WHO, not IHME's Global Burden of Disease:</strong> GBD goes back to 1990 and has more causes, but its data sits behind a registration form, under terms that limit republishing, and OWID's GBD charts can't be downloaded. WHO's estimates are free to reuse with attribution, for non-commercial work, which suits a portfolio piece.</li>
+    <li><strong>Why Parquet:</strong> OWID's catalog offers the full table as Parquet or Feather only. Parquet is columnar and compressed: <code>hyparquet</code> (a dev dependency, pure JavaScript) reads just the 7 columns the script needs, one row group of about a million rows at a time, so the 20 million rows are never in memory together. The whole pass takes about 25 seconds.</li>
+    <li><strong>Pinned:</strong> the URL names the catalog version (<code>2024-07-30</code>), so a rebuild a year from now reads the same numbers. Downloads are cached in <code>scripts/.cache</code> (git-ignored); <code>--fresh</code> downloads them again.</li>
+  </ul>
+
+  <h2>2. The cause tree</h2>
+  <p>WHO lists its 216 causes flat, with every level of its hierarchy mixed together: "All Causes", "Noncommunicable diseases", "Cardiovascular diseases" and "Stroke" are all just rows. The script writes the tree out by hand: <strong>4 families → 17 groups → 40 named causes</strong>, plus the remainders.</p>
+  <ul>
+    <li><strong>Every level adds up.</strong> Each group with named causes gets an "Other …" remainder: the group minus its named causes. So a stack at any level fills its parent exactly, and the icicle in lesson 04 has no gaps.</li>
+    <li><strong>COVID-19 is a family of its own.</strong> WHO files COVID-19 under respiratory infections, inside communicable diseases, so infectious disease would appear to surge in 2020–21. WHO also keeps 1.84 million "other pandemic-related" deaths (2021) outside all three of its families. Here both form a fourth family, and the families then sum to all causes: 9.93 M + 43.26 M + 4.45 M + 10.61 M = 68.25 M deaths in 2021.</li>
+    <li><strong>Plain names.</strong> "Trachea, bronchus, lung cancers" becomes Lung cancer, "Malignant neoplasms" becomes Cancers, and "Unintentional injuries" becomes Accidents. The script keeps WHO's name next to each node, for anyone checking.</li>
+  </ul>
+
+  <h2>3. Counts and rates</h2>
+  <ul>
+    <li><strong>Counts</strong> (<code>deaths-count.json</code>) answer "how many": the size of a problem. They grow with population and with age: more people, or older ones, means more deaths.</li>
+    <li><strong>Age-standardised rates</strong> (<code>deaths-rate.json</code>, per 100,000) answer "how likely". WHO applies each country's death rates at each age to one standard population, as if every country had the same age mix. Japan has many deaths because its people are old, but its age-standardised rate is the second lowest of 194 countries. Comparisons between places, and over time, use rates.</li>
+    <li>Both files have the same shape: <code>values[place][cause]</code> is 22 numbers, 2000 to 2021. Rates add up the way counts do, because they are standardised to the same population, so the tree's sums hold for both.</li>
+    <li><strong>By age and sex</strong> (<code>deaths-by-age.json</code>): deaths per family in 5 age bands (0–4, 5–14, 15–49, 50–69, 70+), for men and women, plus each band's population, worked out as all-cause deaths ÷ the death rate. Lesson 06 uses it to turn any count into a rate. WHO's table also lists finer age bands, but only for self-harm.</li>
+  </ul>
+
+  <h2>4. Places</h2>
+  <ul>
+    <li>WHO's table names places the way Our World in Data does ("Cote d'Ivoire", "Democratic Republic of Congo"). OWID's life-expectancy file pairs each of those names with an ISO3 code, which joins them to the map's ids.</li>
+    <li>The world and the six continents come already summed, rates included. A continent's rate can't be averaged from its countries' rates, which would need weighting by population <em>and</em> by age. They get OWID's codes: <code>OWID_WRL</code>, <code>OWID_AFR</code> … <code>OWID_SAM</code>.</li>
+    <li>201 places in all. Income groups (lesson 07) can only use counts: adding up countries gives a group's deaths, but not its age-standardised rate.</li>
+  </ul>
+
+  <h2>5. Checks</h2>
+  <ul>
+    <li>The script stops if a cause name it reads isn't in WHO's table, since a typo would otherwise write zeros. It lists any place it couldn't find a code for.</li>
+    <li>It prints the world's 2021 sum for each family, which must equal all causes. Every node in every place was checked against the sum of its children: 25 small differences, all in the smallest countries (Tonga, Tuvalu), all from rounding.</li>
+    <li>In the app, each loader's <code>parse</code> checks the shape the charts rely on, and fails with "run npm run data" rather than drawing an empty chart (<code>data/deaths.ts</code>).</li>
+  </ul>
+
+  <h2>The data, inspected</h2>
+  <div class="inspector">
+    @if (deaths.error()) {
+      <p class="error">Couldn't load the data: {{ deaths.error() }}</p>
+    } @else if (deaths.isLoading()) {
+      <p class="note">Loading…</p>
+    } @else {
+      <div class="controls">
+        <label>Place
+          <select [value]="placeId()" (change)="placeId.set($any($event.target).value)">
+            @for (p of places(); track p.id) { <option [value]="p.id" [selected]="p.id === placeId()">{{ p.name }}</option> }
+          </select>
+        </label>
+        <label>Year
+          <input type="range" min="2000" max="2021" step="1" [value]="year()" (input)="year.set(+$any($event.target).value)">
+          <span class="year">{{ year() }}</span>
+        </label>
+        <label>Measure
+          <select [value]="measure()" (change)="measure.set($any($event.target).value)">
+            <option value="count">Deaths</option>
+            <option value="rate">Age-standardised rate</option>
+          </select>
+        </label>
+      </div>
+      <p class="unit">{{ measure() === 'count' ? 'deaths' : 'deaths per 100,000, age-standardised' }} · share of all causes · open a group to see its causes</p>
+      <div class="row total"><span class="name">All causes</span><span class="value">{{ format(value('all')) }}</span><span class="share"></span></div>
+      <ul>
+        @for (f of children('all'); track f.id) {
+          <li class="family">
+            <div class="row"><span class="name">{{ f.name }}</span><span class="value">{{ format(value(f.id)) }}</span><span class="share">{{ percent(share(f.id)) }}</span></div>
+            <ul>
+              @for (g of children(f.id); track g.id) {
+                <li>
+                  @if (children(g.id).length) {
+                    <details>
+                      <summary class="row"><span class="name">{{ g.name }}</span><span class="value">{{ format(value(g.id)) }}</span><span class="share">{{ percent(share(g.id)) }}</span></summary>
+                      <ul>
+                        @for (c of children(g.id); track c.id) {
+                          <li [class.is-other]="c.other"><div class="row"><span class="name">{{ c.name }}</span><span class="value">{{ format(value(c.id)) }}</span><span class="share">{{ percent(share(c.id)) }}</span></div></li>
+                        }
+                      </ul>
+                    </details>
+                  } @else {
+                    <div class="row"><span class="name">{{ g.name }}</span><span class="value">{{ format(value(g.id)) }}</span><span class="share">{{ percent(share(g.id)) }}</span></div>
+                  }
+                </li>
+              }
+            </ul>
+          </li>
+        }
+      </ul>
+      <p class="note">The 4 families add up to {{ format(familySum()) }}.</p>
+    }
+  </div>
+
+  <h2>Files in this lesson</h2>
+  <ul class="note">
+    <li><code>scripts/build-deaths.mjs</code> and <code>npm run data</code>; <code>hyparquet</code> and <code>hyparquet-compressors</code> (dev dependencies)</li>
+    <li><code>public/data/causes.json</code>, <code>deaths-count.json</code>, <code>deaths-rate.json</code>, <code>deaths-by-age.json</code>, <code>child-mortality.json</code>, <code>life-expectancy.json</code>: 5.6 MB in all, 1.8 MB gzipped</li>
+    <li><code>src/app/data/deaths.ts</code>: the files' types and three loaders (<code>Deaths</code>, <code>DeathsByAge</code>, <code>LongRun</code>), each loading only when a view first needs it</li>
+    <li><code>lessons/lesson-data/*</code> (this page)</li>
+  </ul>
+
+  <h2>Review checklist</h2>
+  <ul class="note">
+    <li><code>npm run data</code> ends with the world's 2021 line: 68.25 M = 9.93 + 43.26 + 4.45 + 10.61</li>
+    <li>In the inspector, World 2021: the COVID-19 pandemic is about 16% of all deaths; drag the year to 2019 and it's gone</li>
+    <li>Pick Japan: switch from deaths to the rate, and it drops far below the world's</li>
+    <li>Open Heart disease and stroke: the named causes and the "Other" row add up to the group</li>
+  </ul>
+</app-lesson-page>
